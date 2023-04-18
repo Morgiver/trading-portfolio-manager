@@ -17,8 +17,8 @@ The objectives of the Iteration 0 is to build good foundation to have a easy mai
 9. The position should be updated by different way : receiving an entire candle, receiving the last tick, or receiving the last trade executed.
 10. All position should be managed by a PositionManager
 11. The manager will be build with a max of positions, a starting balance and a list to stack all positions.
-12. The manager should be capable to open and close a position
-13. The Manager should be capable to return the actual balance by calculating all the pnl
-14. The Manager should be capable to update all position if necessary.
+12. The manager should be able to open and close a position
+13. The Manager should be able to return the actual balance by calculating all the pnl
+14. The Manager should be able to update all position if necessary.
 15. The Manager should be considered to be part of a bigger position manager. In other word when we create a position manager it will stack all positions. And if we create a second manager to manage specific position for an exchange or a specific pair, we should be capable to ask to the primary manager to give us a second manager.
-16. The Manager should be capable to calculate a position in respect of given risk management rules.
+16. The Manager should be able to calculate a position in respect of given risk management rules.

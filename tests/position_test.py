@@ -68,3 +68,75 @@ class TestPosition(unittest.TestCase):
         short.update_by_candle({'Date': '01/01/2000, 00:00:01', 'High': 1.15, 'Low': 1.09, 'Close': 1.101})
         self.assertEqual(short.pnl, -10000.0)
         self.assertEqual(short.close_date, '01/01/2000, 00:00:01')
+
+    def test_position_update_by_tick(self):
+        p = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        self.assertEqual(p.get_pnl(1.0, 1.0), 0.0)
+        p.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 1.01, 'Ask': 1.012})
+        self.assertEqual(p.pnl, 1000.0)
+        self.assertEqual(p.close_date, None)
+
+    def test_update_by_tick_raising(self):
+        p = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, "toto", "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        with self.assertRaises(Exception):
+            p.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 1.01, 'Ask': 1.012})
+
+    def test_update_by_tick_long_win(self):
+        long = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        long.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 1.1, 'Ask': 1.1001})
+        self.assertEqual(long.pnl, 10000.0)
+        self.assertEqual(long.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_tick_long_loss(self):
+        long = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        long.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 0.9, 'Ask': 0.9001})
+        self.assertEqual(long.pnl, -10000.0)
+        self.assertEqual(long.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_tick_short_win(self):
+        short = Position('123abc','01/01/2000, 00:00:00', 1.0, 0.9, 1.1, 1.0, 100000.0, 0.01, SELL_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        short.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 0.8999, 'Ask': 0.9})
+        self.assertEqual(short.pnl, 10000.0)
+        self.assertEqual(short.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_tick_short_loss(self):
+        short = Position('123abc','01/01/2000, 00:00:00', 1.0, 0.9, 1.1, 1.0, 100000.0, 0.01, SELL_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        short.update_by_tick({'Date': '01/01/2000, 00:00:01', 'Bid': 1.0999, 'Ask': 1.1})
+        self.assertEqual(short.pnl, -10000.0)
+        self.assertEqual(short.close_date, '01/01/2000, 00:00:01')
+
+    def test_position_update_by_trade(self):
+        p = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        self.assertEqual(p.get_pnl(1.0, 1.0), 0.0)
+        p.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 1.01})
+        self.assertEqual(p.pnl, 1000.0)
+        self.assertEqual(p.close_date, None)
+
+    def test_update_by_trade_raising(self):
+        p = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, "toto", "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        with self.assertRaises(Exception):
+            p.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 1.01})
+
+    def test_update_by_trade_long_win(self):
+        long = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        long.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 1.1})
+        self.assertEqual(long.pnl, 10000.0)
+        self.assertEqual(long.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_trade_long_loss(self):
+        long = Position('123abc','01/01/2000, 00:00:00', 1.0, 1.1, 0.9, 1.0, 100000.0, 0.01, BUY_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        long.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 0.9})
+        self.assertEqual(long.pnl, -10000.0)
+        self.assertEqual(long.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_trade_short_win(self):
+        short = Position('123abc','01/01/2000, 00:00:00', 1.0, 0.9, 1.1, 1.0, 100000.0, 0.01, SELL_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        short.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 0.9})
+        self.assertEqual(short.pnl, 10000.0)
+        self.assertEqual(short.close_date, '01/01/2000, 00:00:01')
+
+    def test_update_by_trade_short_loss(self):
+        short = Position('123abc','01/01/2000, 00:00:00', 1.0, 0.9, 1.1, 1.0, 100000.0, 0.01, SELL_SIDE, "forex", "Oanda", "EURUSD", ASSET_FUTURE)
+        short.update_by_trade({'Date': '01/01/2000, 00:00:01', 'Price': 1.1})
+        self.assertEqual(short.pnl, -10000.0)
+        self.assertEqual(short.close_date, '01/01/2000, 00:00:01')

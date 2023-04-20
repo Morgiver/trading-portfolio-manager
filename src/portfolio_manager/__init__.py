@@ -191,6 +191,6 @@ class Position:
             if self.stoploss > 0.0 and trade['Price'] >= self.stoploss:
                 self.close(trade['Date'], self.stoploss, self.stoploss)
             elif self.target > 0.0 and trade['Price'] <= self.target:
-                self.closel(trade['Date'], self.target, self.target)
+                self.close(trade['Date'], self.target, self.target)
         else:
             raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")

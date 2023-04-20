@@ -1,3 +1,8 @@
+import uuid
+from types import NoneType
+from typing import Union
+from datetime import datetime
+
 # Custom Python
 from src.portfolio_manager.functions import *
 
@@ -7,8 +12,11 @@ SELL_SIDE = "sell_side"
 ASSET_SPOT   = "asset_spot"
 ASSET_FUTURE = "asset_future"
 
+DATE_STR_FORMAT = '%m/%d/%Y, %H:%M:%S'
+
 class Position:
     def __init__(self,
+            identifier: str,
             open_date: str,
             entry: float,
             target: float = -1.0,
@@ -21,6 +29,7 @@ class Position:
             exchange: str = "Oanda",
             pair: str = "EURUSD",
             _type: str = ASSET_FUTURE) -> None:
+        self.identifier      = identifier
         self.market          = market
         self.exchange        = exchange
         self.pair            = pair
@@ -56,6 +65,13 @@ class Position:
     def get_pnl(self, bid_price: float, ask_price: float) -> float:
         """
         Calculate and returning the actual profit and loss
+
+        Parameters:
+        bid_price (float): Best price of the Bid side in the orderbook
+        ask_price (float): Best price of the Ask side in the orderbook
+
+        Returns:
+        float: The Profit and Loss value
         """
         pip_value = self.pip_value()
 
@@ -72,8 +88,30 @@ class Position:
         This calculates how many times one wins the risk.
         A ratio greater than 1.0 means that a loss will be recovered with a single trade.
         A ratio smaller than 1.0 will require several winning trades to recoup our losses.
+
+        Parameters:
+        None
+
+        Returns:
+        float: The Risk Reward Ratio value
         """
         return round(abs((self.entry - self.target) / (self.entry - self.stoploss)), 2)
+
+    def close(self, close_date: str, bid_price: float, ask_price: float) -> None:
+        """
+        Closing the position
+
+        Parameters:
+        close_date (str): The date when the position is closed, in
+                          '%m/%d/%Y, %H:%M:%S' str format
+        bid_price (float): Best price of the Bid side in the orderbook
+        ask_price (float): Best price of the Ask side in the orderbook
+
+        Returns:
+        None
+        """
+        self.close_date = close_date
+        self.pnl = self.get_pnl(bid_price, ask_price)
 
     def update_by_candle(self, candle) -> None:
         """
@@ -81,30 +119,78 @@ class Position:
 
         Will update the Candle pnl and check if stoploss and target have been hit.
         In that case, the position will be closed.
+
+        Parameters:
+        candle (dict): A candle containing the Open Date, High Price, Low Price,
+                       Close Price and Volume.
+
+        Returns:
+        None
         """
         self.pnl = self.get_pnl(candle['Close'], candle['Close'])
 
         if self.side == BUY_SIDE:
             if self.stoploss > 0.0 and candle['Low'] <= self.stoploss:
-                self.close_date = candle['Date']
-                self.pnl = self.get_pnl(self.stoploss, self.stoploss)
+                self.close(candle['Date'], self.stoploss, self.stoploss)
             elif self.target > 0.0 and candle['High'] >= self.target:
-                self.close_date = candle['Date']
-                self.pnl = self.get_pnl(self.target, self.target)
+                self.close(candle['Date'], self.target, self.target)
         elif self.side == SELL_SIDE:
             if self.stoploss > 0.0 and candle['High'] >= self.stoploss:
-                self.close_date = candle['Date']
-                self.pnl = self.get_pnl(self.stoploss, self.stoploss)
+                self.close(candle['Date'], self.stoploss, self.stoploss)
             elif self.target > 0.0 and candle['Low'] <= self.target:
-                self.close_date = candle['Date']
-                self.pnl = self.get_pnl(self.target, self.target)
+                self.close(candle['Date'], self.target, self.target)
         else:
-            raise Exception(f"Side has to be : 'buy' or 'sell' value")
+            raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")
 
-    def update_by_tick(self, tick):
-        # TODO:
-        pass
+    def update_by_tick(self, tick) -> None:
+        """
+        Updating the position with a given Tick
 
-    def update_by_trade(self, trade):
-        # TODO:
-        pass
+        A Tick is a move of two possible price : Bid and Ask prices.
+        Bid and Ask are the best prices in the orderbook, they move when the
+        orderbook is impacted.
+
+        Using the tick to update a position is much more precise.
+
+        Parameters:
+        tick (dict): A Tick containing Date, Bid Price and Ask Price
+        """
+        self.pnl = self.get_pnl(tick['Bid'], tick['Ask'])
+
+        if self.side == BUY_SIDE:
+            if (self.stoploss > 0.0 and tick['Bid'] <= self.stoploss) or (self.target > 0.0 and tick['Bid'] >= self.target):
+                self.close(tick['Date'], tick['Bid'], tick['Ask'])
+        elif self.side == SELL_SIDE:
+            if (self.stoploss > 0.0 and tick['Ask'] >= self.stoploss) or (self.target > 0.0 and tick['Ask'] <= self.target):
+                self.close(tick['Date'], tick['Bid'], tick['Ask'])
+        else:
+            raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")
+
+    def update_by_trade(self, trade) -> None:
+        """
+        Updating the position with a given executed Trade
+
+        A Trade is an executed transaction at a price level. It can be used to
+        update the position when we are in lack of information (e.g. can't access,
+        to the ticker or candles.).
+
+        Parameters:
+        trade (dict): An executed Trade containing Date and Price level at minimum.
+
+        Returns:
+        None
+        """
+        self.pnl = self.get_pnl(trade['Price'], trade['Price'])
+
+        if self.side == BUY_SIDE:
+            if self.stoploss > 0.0 and trade['Price'] <= self.stoploss:
+                self.close(trade['Date'], self.stoploss, self.stoploss)
+            elif self.target > 0.0 and trade['Price'] >= self.target:
+                self.close(trade['Date'], self.target, self.target)
+        elif self.side == SELL_SIDE:
+            if self.stoploss > 0.0 and trade['Price'] >= self.stoploss:
+                self.close(trade['Date']self.stoploss, self.stoploss)
+            elif self.target > 0.0 and trade['Price'] <= self.target:
+                self.closel(trade['Date'], self.target, self.target)
+        else:
+            raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")

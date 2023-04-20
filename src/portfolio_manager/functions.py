@@ -16,7 +16,7 @@ def pip_size(factor: float = 0.01) -> float:
     Returns:
     float: The size of the pip
     """
-    return round((1.0 / 100) * factor, 5)
+    return round((1.0 / 100.0) * factor, 5)
 
 def pip_value(price: float, pip_size: float, lot_size: float, contract_size: float) -> float:
     """

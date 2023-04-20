@@ -113,7 +113,7 @@ class Position:
         self.close_date = close_date
         self.pnl = self.get_pnl(bid_price, ask_price)
 
-    def update_by_candle(self, candle) -> None:
+    def update_by_candle(self, candle: dict) -> None:
         """
         Updating the position with a given Candle
 
@@ -142,7 +142,7 @@ class Position:
         else:
             raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")
 
-    def update_by_tick(self, tick) -> None:
+    def update_by_tick(self, tick: dict) -> None:
         """
         Updating the position with a given Tick
 
@@ -166,7 +166,7 @@ class Position:
         else:
             raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")
 
-    def update_by_trade(self, trade) -> None:
+    def update_by_trade(self, trade: dict) -> None:
         """
         Updating the position with a given executed Trade
 
@@ -189,7 +189,7 @@ class Position:
                 self.close(trade['Date'], self.target, self.target)
         elif self.side == SELL_SIDE:
             if self.stoploss > 0.0 and trade['Price'] >= self.stoploss:
-                self.close(trade['Date']self.stoploss, self.stoploss)
+                self.close(trade['Date'], self.stoploss, self.stoploss)
             elif self.target > 0.0 and trade['Price'] <= self.target:
                 self.closel(trade['Date'], self.target, self.target)
         else:

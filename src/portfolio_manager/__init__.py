@@ -16,7 +16,7 @@ DATE_STR_FORMAT = '%m/%d/%Y, %H:%M:%S'
 
 class Position:
     """
-    Position 
+    Position
     """
     def __init__(self,
             identifier: str,
@@ -213,7 +213,23 @@ class PositionManager:
         self.position_indexer = {}
         self.positions        = []
 
-    def open(self, entry: float, lot_size: float, date: str, side: str = BUY_SIDE, target: float = -1.0, stoploss: float = -1.0, _uuid: str | NoneType = None) -> Position:
+    def get_position(self, _uuid: uuid.UUID):
+        """
+        Return the Position identified by _uuid, if no Position for this uuid,
+        raise an Exception
+
+        Parameters:
+            _uuid (UUID): A Unique Identifier
+
+        Returns:
+            position (Position): The identified position
+        """
+        if _uuid in self.position_indexer:
+            return self.positions[self.position_indexer[_uuid]]
+
+        raise Exception(f"This {_uuid} doesn't exist")
+
+    def open(self, entry: float, lot_size: float, date: str, side: str = BUY_SIDE, target: float = -1.0, stoploss: float = -1.0, _uuid: str | NoneType = None) -> Position | NoneType:
         """
         Open and stack a new Position
 
@@ -230,18 +246,18 @@ class PositionManager:
             position (Position): The new stacked position
             None
         """
-        if len(self.position) < self.max_positions:
+        if len(self.positions) < self.max_positions:
             if not _uuid:
                 _uuid = uuid.uuid4()
 
             while _uuid in self.position_indexer:
                 _uuid = uuid.uuid4()
 
-            self.position.append(Position(_uuid, date, entry, target, stoploss, lot_size, side=side))
+            self.positions.append(Position(_uuid, date, entry, target, stoploss, lot_size, side=side))
             self.position_indexer[_uuid] = len(self.positions) - 1
             return self.positions[self.position_indexer[_uuid]]
 
-    def close(self, bid_price: float, ask_price: float, _uuid: str | NoneType = None) -> None:
+    def close(self, bid_price: float, ask_price: float, _uuid: uuid.UUID | NoneType = None) -> None:
         """
         Close an identified Position or all Positions
 
@@ -256,20 +272,20 @@ class PositionManager:
         if _uuid is not None:
             # Close one identified position
             if _uuid in self.position_indexer:
-                self.positions[self.position_indexer[_uuid]].close(datetime.fromtimestamp(datetime.now()).strftime(DATE_STR_FORMAT), bid_price, ask_price)
+                self.positions[self.position_indexer[_uuid]].close(datetime.now().strftime(DATE_STR_FORMAT), bid_price, ask_price)
             else:
                 raise Exception(f"Position [{_uuid}] doesn't exist")
         else:
             # Close all opened positions
             for position in self.positions:
-                position.close(datetime.fromtimestamp(datetime.now()).strftime(DATE_STR_FORMAT), bid_price, ask_price)
+                position.close(datetime.now().strftime(DATE_STR_FORMAT), bid_price, ask_price)
 
-    def balance(self, incl: bool = False) -> float:
+    def balance(self, include: bool = False) -> float:
         """
         Getting the global balance view
 
         Parameters:
-            incl (bool): Include parameter, define if we want to include openned
+            include (bool): Include parameter, define if we want to include openned
                          Positions or not.
 
         Returns:
@@ -278,7 +294,7 @@ class PositionManager:
         balance = self.start_balance
 
         for position in self.positions:
-            if (not incl and position.close_date is not None) or incl:
+            if include or (not include and type(position.close_date) == str):
                 balance += position.pnl
 
         return balance
@@ -293,4 +309,4 @@ class PositionManager:
         Returns:
             equity (float): The actual Equity
         """
-        return self.balance(True)
+        return self.balance(include=True)

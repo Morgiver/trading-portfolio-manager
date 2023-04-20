@@ -15,6 +15,9 @@ ASSET_FUTURE = "asset_future"
 DATE_STR_FORMAT = '%m/%d/%Y, %H:%M:%S'
 
 class Position:
+    """
+    Position 
+    """
     def __init__(self,
             identifier: str,
             open_date: str,
@@ -67,11 +70,11 @@ class Position:
         Calculate and returning the actual profit and loss
 
         Parameters:
-        bid_price (float): Best price of the Bid side in the orderbook
-        ask_price (float): Best price of the Ask side in the orderbook
+            bid_price (float): Best price of the Bid side in the orderbook
+            ask_price (float): Best price of the Ask side in the orderbook
 
         Returns:
-        float: The Profit and Loss value
+            pnl (float): The Profit and Loss value
         """
         pip_value = self.pip_value()
 
@@ -90,10 +93,10 @@ class Position:
         A ratio smaller than 1.0 will require several winning trades to recoup our losses.
 
         Parameters:
-        None
+            None
 
         Returns:
-        float: The Risk Reward Ratio value
+            risk_reward_ratio (float): The Risk Reward Ratio value
         """
         return round(abs((self.entry - self.target) / (self.entry - self.stoploss)), 2)
 
@@ -102,13 +105,13 @@ class Position:
         Closing the position
 
         Parameters:
-        close_date (str): The date when the position is closed, in
-                          '%m/%d/%Y, %H:%M:%S' str format
-        bid_price (float): Best price of the Bid side in the orderbook
-        ask_price (float): Best price of the Ask side in the orderbook
+            close_date (str): The date when the position is closed, in
+                              '%m/%d/%Y, %H:%M:%S' str format
+            bid_price (float): Best price of the Bid side in the orderbook
+            ask_price (float): Best price of the Ask side in the orderbook
 
         Returns:
-        None
+            None
         """
         self.close_date = close_date
         self.pnl = self.get_pnl(bid_price, ask_price)
@@ -121,11 +124,11 @@ class Position:
         In that case, the position will be closed.
 
         Parameters:
-        candle (dict): A candle containing the Open Date, High Price, Low Price,
-                       Close Price and Volume.
+            candle (dict): A candle containing the Open Date, High Price, Low Price,
+                           Close Price and Volume.
 
         Returns:
-        None
+            None
         """
         self.pnl = self.get_pnl(candle['Close'], candle['Close'])
 
@@ -153,7 +156,10 @@ class Position:
         Using the tick to update a position is much more precise.
 
         Parameters:
-        tick (dict): A Tick containing Date, Bid Price and Ask Price
+            tick (dict): A Tick containing Date, Bid Price and Ask Price
+
+        Returns:
+            None
         """
         self.pnl = self.get_pnl(tick['Bid'], tick['Ask'])
 
@@ -175,10 +181,10 @@ class Position:
         to the ticker or candles.).
 
         Parameters:
-        trade (dict): An executed Trade containing Date and Price level at minimum.
+            trade (dict): An executed Trade containing Date and Price level at minimum.
 
         Returns:
-        None
+            None
         """
         self.pnl = self.get_pnl(trade['Price'], trade['Price'])
 
@@ -194,3 +200,97 @@ class Position:
                 self.close(trade['Date'], self.target, self.target)
         else:
             raise Exception(f"Side of Position has to be : '{BUY_SIDE}' or '{SELL_SIDE}' value")
+
+class PositionManager:
+    """
+    PositionManager
+    """
+    def __init__(self,
+            start_balance: float = 100.0,
+            max_positions: int = 1) -> None:
+        self.max_positions    = max_positions
+        self.start_balance    = start_balance
+        self.position_indexer = {}
+        self.positions        = []
+
+    def open(self, entry: float, lot_size: float, date: str, side: str = BUY_SIDE, target: float = -1.0, stoploss: float = -1.0, _uuid: str | NoneType = None) -> Position:
+        """
+        Open and stack a new Position
+
+        Parameters:
+            entry    (float): Entry price level
+            lot_size (float): Size of the lot (or volume)
+            date       (str): Open date
+            side       (str): Side position, Buy or Sell
+            target   (float): Target price level
+            stoploss (float): Stop loss price level
+            _uuid      (str): Unique Identifier
+
+        Returns:
+            position (Position): The new stacked position
+            None
+        """
+        if len(self.position) < self.max_positions:
+            if not _uuid:
+                _uuid = uuid.uuid4()
+
+            while _uuid in self.position_indexer:
+                _uuid = uuid.uuid4()
+
+            self.position.append(Position(_uuid, date, entry, target, stoploss, lot_size, side=side))
+            self.position_indexer[_uuid] = len(self.positions) - 1
+            return self.positions[self.position_indexer[_uuid]]
+
+    def close(self, bid_price: float, ask_price: float, _uuid: str | NoneType = None) -> None:
+        """
+        Close an identified Position or all Positions
+
+        Parameters:
+            bid_price (float): Best price of the Bid side in the orderbook
+            ask_price (float): Best price of the Ask side in the orderbook
+            _uuid       (str): Unique Identifier
+
+        Returns:
+            None
+        """
+        if _uuid is not None:
+            # Close one identified position
+            if _uuid in self.position_indexer:
+                self.positions[self.position_indexer[_uuid]].close(datetime.fromtimestamp(datetime.now()).strftime(DATE_STR_FORMAT), bid_price, ask_price)
+            else:
+                raise Exception(f"Position [{_uuid}] doesn't exist")
+        else:
+            # Close all opened positions
+            for position in self.positions:
+                position.close(datetime.fromtimestamp(datetime.now()).strftime(DATE_STR_FORMAT), bid_price, ask_price)
+
+    def balance(self, incl: bool = False) -> float:
+        """
+        Getting the global balance view
+
+        Parameters:
+            incl (bool): Include parameter, define if we want to include openned
+                         Positions or not.
+
+        Returns:
+            balance (float): The actual balance
+        """
+        balance = self.start_balance
+
+        for position in self.positions:
+            if (not incl and position.close_date is not None) or incl:
+                balance += position.pnl
+
+        return balance
+
+    def equity(self):
+        """
+        An alias returning the balance including all openned Positions
+
+        Parameters:
+            None
+
+        Returns:
+            equity (float): The actual Equity
+        """
+        return self.balance(True)

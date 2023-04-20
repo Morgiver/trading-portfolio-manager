@@ -2,7 +2,7 @@
 
 This package will provide an API to manage multiple assets on multiple exchange platform on different type of market (Forex, Crypto, Bound, etc.)
 
-## Actual State : Iteration 0
+## Actual State : Iteration 0 [Finished] (see [historic for past iterations](https://github.com/Morgiver/portfolio-manager/blob/main/iterations.md))
 
 The objectives of the Iteration 0 is to build good foundation to have a easy maintainable project.
 

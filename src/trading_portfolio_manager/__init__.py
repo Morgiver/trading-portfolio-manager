@@ -4,7 +4,7 @@ from typing import Union
 from datetime import datetime
 
 # Custom Python
-from src.portfolio_manager.functions import *
+from src.trading_portfolio_manager.functions import *
 
 BUY_SIDE = "buy_side"
 SELL_SIDE = "sell_side"

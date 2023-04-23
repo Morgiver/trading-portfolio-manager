@@ -1,7 +1,7 @@
 import unittest
 
 # Custom Python
-from src.portfolio_manager import *
+from src.trading_portfolio_manager import *
 
 class TestPositionManager(unittest.TestCase):
     def test_manager_initialization(self):

@@ -1,4 +1,7 @@
+import sys
 import unittest
+
+sys.path.append('./src')
 
 # Custom Python
 from src.trading_portfolio_manager import *

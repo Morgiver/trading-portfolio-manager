@@ -4,7 +4,7 @@ import unittest
 sys.path.append('./src')
 
 # Custom Python
-from src.trading_portfolio_manager import *
+from trading_portfolio_manager import *
 
 class TestPositionManager(unittest.TestCase):
     def test_manager_initialization(self):
